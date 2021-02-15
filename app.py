@@ -34,6 +34,7 @@ def home():
         f'/api/v1.0/tobs'
         f'/api/v1.0/<start>'
         f'/api/v1.0/<start>/<end>'
+        f'Enter date in YYYY-MM-DD format'
     )
 
 @app.route('/api/v1.0/precipitation')
@@ -77,32 +78,51 @@ def tobs():
 
     query = session.query(Measurement.date, Measurement.tobs).order_by(Measurement.date.desc()).filter(Measurement.date >= one_year)
 
-    Date_Temp = [{'Date': x[0], 'Temp': x[1]} for x in query]  
+    Date_Temp = [{'Date': x[0], 'Temp': x[1]} for x in query]
+
+    session.close()  
     
     return jsonify(Date_Temp)
 
-# Need help here
+
 @app.route('/api/v1.0/<start>')
 def start_date(start):
-    low_temp = session.query(func.min(Measurement.tobs)).filter(Measurement.date >= start)
-    high_temp = session.query(func.max(Measurement.tobs)).filter(Measurement.date >= start)
-    avg_temp = session.query(func.avg(Measurement.tobs)).filter(Measurement.date >= start)
 
-    canonicalized = start.replace(" ", "").lower()
+    results = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).filter(Measurement.date >= start).all()
 
-    for date in start:
-        search_term = date["start"].replace(" ", "").lower()
+    temps = []
 
-        if search_term == canonicalized:
-            return jsonify(temps)
+    for min, max, avg in results:
+        start_date_tobs_dict = {}
+        start_date_tobs_dict["Min Temp"] = min
+        start_date_tobs_dict["Max Temp"] = max
+        start_date_tobs_dict["Avg Temp"] = round(avg,1)
+        temps.append(start_date_tobs_dict) 
 
-  
-  
-    return jsonify({"error": f"Date: {start} not valid."}), 404
+    session.close()
 
-#Need help here too
+    return jsonify(temps)
+
+    
+
+#Need help here
 @app.route('/api/v1.0/<start>/<end>')
-def start_date(start, end):
+def start_end_date(start, end):
+
+    results = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).filter((Measurement.date >= start),(Measurement.date <= start)).all()
+
+    temps = []
+
+    for min, max, avg in results:
+        start_date_tobs_dict = {}
+        start_date_tobs_dict["Min Temp"] = min
+        start_date_tobs_dict["Max Temp"] = max
+        start_date_tobs_dict["Avg Temp"] = round(avg,1)
+        temps.append(start_date_tobs_dict) 
+
+    session.close()
+
+    return jsonify(temps)
 
 
 if __name__ == "__main__":
